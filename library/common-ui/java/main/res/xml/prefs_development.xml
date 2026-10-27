@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ This file is part of HyperCeiler.
+  ~
+  ~ HyperCeiler is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as
+  ~ published by the Free Software Foundation, either version 3 of the
+  ~ License.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  ~
+  ~ Copyright (C) 2023-2025 HyperCeiler Contributions
+  -->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory>
+
+        <Preference
+            android:fragment="com.sevtinge.hyperceiler.ui.page.settings.development.DevelopmentDebugInfoFragment"
+            android:key="prefs_key_development_debug_info"
+            android:title="@string/development_debug_info" />
+
+        <Preference
+            android:fragment="com.sevtinge.hyperceiler.ui.page.settings.development.DevelopmentKillFragment"
+            android:key="prefs_key_development_kill"
+            android:title="@string/kill" />
+
+        <Preference
+            android:fragment="com.sevtinge.hyperceiler.ui.page.settings.development.DevelopmentPrefsFragment"
+            android:key="prefs_key_development_prefs"
+            android:title="@string/development_prefs" />
+
+        <Preference
+            android:fragment="com.sevtinge.hyperceiler.ui.page.settings.development.DevelopmentUIFragment"
+            android:key="prefs_key_development_ui"
+            android:title="@string/development_ui" />
+
+        <Preference
+            android:key="prefs_key_development_oobe"
+            android:title="OOBE"
+            android:enabled="false">
+            <intent
+                android:targetPackage="com.sevtinge.hyperceiler"
+                android:targetClass="com.sevtinge.hyperceiler.provision.activity.ProvisionActivity"/>
+        </Preference>
+
+        <Preference
+            android:key="prefs_key_development_cmd_r"
+            android:title="@string/development_cmd_r" />
+
+        <Preference
+            android:key="prefs_key_development_delete_all_dexkit_cache"
+            android:title="@string/development_delete_all_dexkit_cache" />
+
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="prefs_key_development_close_log_alert_dialog"
+            android:title="@string/development_close_log_alert_dialog" />
+
+        <Preference
+            android:key="prefs_key_development_fix_lsposed_log"
+            android:title="@string/development_fix_lsposed_log" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
