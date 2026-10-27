@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ This file is part of HyperCeiler.
+  ~
+  ~ HyperCeiler is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as
+  ~ published by the Free Software Foundation, either version 3 of the
+  ~ License.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+  ~
+  ~ Copyright (C) 2023-2025 HyperCeiler Contributions
+  -->
+<resources>
+    <string-array name="restart_apps_name_hyperos">
+        <item>@string/system_ui</item>
+        <item>@string/mihome</item>
+        <item>@string/system_settings</item>
+        <item>@string/security_center_hyperos</item>
+        <!--<item>@string/personal_assistant</item>
+        <item>@string/notes</item>
+        <item>@string/powerkeeper</item>
+        <item>@string/joyose</item>
+        <item>@string/networkboost</item>-->
+    </string-array>
+
+    <string-array name="restart_apps_packagename">
+        <item>com.android.systemui</item>
+        <item>com.miui.home</item>
+        <item>com.android.settings</item>
+        <item>com.miui.securitycenter</item>
+        <!--<item>com.miui.personalassistant</item>
+        <item>com.miui.notes</item>
+        <item>com.miui.powerkeeper</item>
+        <item>com.xiaomi.joyose</item>
+        <item>com.xiaomi.NetworkBoost</item>-->
+    </string-array>
+</resources>
