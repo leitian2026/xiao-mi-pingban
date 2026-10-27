@@ -1,0 +1,90 @@
+name: Release Build
+# 待修改
+on:
+  push:
+    branches: [ "main2" ]
+    paths-ignore:
+      - ".github/**"
+      - "!.github/workflows/**"
+      - ".idea/"
+      - "doc/*"
+      - "*.md"
+      - "app/src/assets/**"
+      - ".github/workflows/crowdin.yml"
+      - "crowdin.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build App
+    steps:
+      - name: Checkout Git Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-overwrite-existing: true
+
+      - name: Create Sign File
+        if: github.ref == 'refs/heads/main'
+        run: |
+          touch signing.properties
+          echo storePassword=${{ secrets.KEY_STORE_PASSWORD }} >> signing.properties
+          echo keyAlias=${{ secrets.ALIAS }} >> signing.properties
+          echo keyPassword='${{ secrets.KEY_STORE_PASSWORD }}' >> signing.properties
+          echo storeFile=../key.jks >> signing.properties
+          echo ${{ secrets.SIGNING_KEY }} | base64 --decode > key.jks
+
+      - name: Build with Gradle
+        shell: bash
+        run: ./gradlew assembleCanary
+
+      - name: Find APKs
+        run: |
+          echo "APK_FILE_CANARY=$(find app/build/outputs/apk/canary -name '*.apk')" >> $GITHUB_ENV
+
+      - name: Show APKs SHA256
+        if: success()
+        run: |
+          echo "### Build Success" >> $GITHUB_STEP_SUMMARY
+          echo "|Artifact|SHA256|" >> $GITHUB_STEP_SUMMARY
+          echo "|:--------:|:----------|" >> $GITHUB_STEP_SUMMARY
+          canary=$(sha256sum "${{ env.APK_FILE_CANARY }}")
+          echo "SHA256=$canary" >> $GITHUB_ENV
+          echo "|Canary|$canary" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Canary APK
+        if: ${{ contains(github.event.head_commit.message, '[unupload]') == false && contains(github.event.head_commit.message, '[skp]') == false }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: HyperCeiler Canary
+          path: ${{ env.APK_FILE_CANARY }}
+
+      - name: Post to Canary Channel
+        if: ${{ github.ref == 'refs/heads/main' && github.ref_type != 'tag' && contains(github.event.head_commit.message, '[skp]') == false && contains(github.event.head_commit.message, 's#') == false }}
+        shell: bash
+        env:
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CANARY: ${{ env.APK_FILE_CANARY }}
+          COMMIT_MESSAGE: |+
+            New push to GitHub
+            ```
+            ${{ github.event.head_commit.message }}
+            ```by `${{ github.event.head_commit.author.name }}`
+            See commit detail [here](${{ github.event.head_commit.url }})
+        run: |
+          ESCAPED=$(python3 -c 'import json,os,urllib.parse; print(urllib.parse.quote(json.dumps(os.environ["COMMIT_MESSAGE"])))')
+          cd ${{ github.workspace }}
+          curl -v "https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup?chat_id=${CHANNEL_ID}&media=%5B%7B%22type%22:%22document%22,%20%22media%22:%22attach://canary%22,%22parse_mode%22:%22MarkdownV2%22,%22caption%22:${ESCAPED}%7D%5D" -F canary="@${CANARY}"
