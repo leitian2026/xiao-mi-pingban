@@ -30,7 +30,6 @@ import android.content.pm.Signature;
 import android.util.Log;
 
 import com.sevtinge.hyperceiler.hook.utils.api.ProjectApi;
-import com.sevtinge.hyperceiler.hook.utils.prefs.PrefsUtils;
 
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
@@ -48,7 +47,6 @@ import java.util.zip.ZipEntry;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
-import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -78,7 +76,7 @@ public class CorePatchForR extends XposedHelper implements IXposedHookLoadPackag
         }
     }
 
-    final XSharedPreferences prefs = new XSharedPreferences(ProjectApi.mAppModulePkg, PrefsUtils.mPrefsName);
+    final CorePatchPrefs prefs = new CorePatchPrefs();
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam loadPackageParam) throws IllegalAccessException, InvocationTargetException, InstantiationException {
