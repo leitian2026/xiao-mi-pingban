@@ -31,7 +31,6 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 
 import com.sevtinge.hyperceiler.BuildConfig;
-import com.sevtinge.hyperceiler.expansion.utils.SignUtils;
 import com.sevtinge.hyperceiler.hook.utils.devicesdk.SystemSDKKt;
 import com.sevtinge.hyperceiler.ui.R;
 import com.sevtinge.hyperceiler.common.prefs.LayoutPreference;
@@ -95,7 +94,8 @@ public class HomePageBannerHelper {
     private void checkWarnings(Context context, PreferenceCategory preference) {
         boolean isOfficialRom = getIsOfficialRom();
         boolean isFullSupport = isFullSupport();
-        boolean isSignPass = SignUtils.isSignCheckPass(context);
+        // 自用构建使用自己的签名，跳过官方签名校验失败的提示
+        boolean isSignPass = true;
 
         if (!isSignPass || !isFullSupport || isOfficialRom) {
             LayoutPreference layoutPreference = (LayoutPreference) createBannerPreference(
