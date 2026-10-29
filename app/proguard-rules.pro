@@ -11,6 +11,7 @@
 -dontwarn de.robv.android.xposed.XposedBridge
 -dontwarn de.robv.android.xposed.callbacks.XC_LoadPackage$LoadPackageParam
 -dontwarn miui.util.HapticFeedbackUtil
+-dontwarn fan.miuix.haptic.**
 
 -dontwarn android.app.ActivityTaskManager$RootTaskInfo
 -dontwarn miui.app.MiuiFreeFormManager$MiuiFreeFormStackInfo
