@@ -27,7 +27,8 @@ val getGitCommitCount: () -> Int = {
 
 val getVersionCode: () -> Int = {
     val commitCount = getGitCommitCount()
-    val major = 5
+    // 自用构建：基数设为 10000，保证版本号高于已安装的官方版本（如 4237），可直接覆盖安装
+    val major = 10005
     major + commitCount
 }
 
