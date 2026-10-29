@@ -1,12 +1,12 @@
 name: CI Build
 
 on:
-  # 已关闭自动构建（push / pull_request），仅保留手动触发
+  # 仅手动触发：Actions → CI Build → Run workflow（分支选 main）
   workflow_dispatch:
 
 jobs:
   build_app:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     name: Build App
     steps:
       - name: Checkout Git Repository
@@ -18,47 +18,46 @@ jobs:
       - name: Setup JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '21'
+          distribution: 'temurin'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-overwrite-existing: true
 
-      - name: Create Sign File
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      - name: Check Signing Secrets
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
         run: |
-          touch signing.properties
-          echo storePassword=${{ secrets.KEY_STORE_PASSWORD }} >> signing.properties
-          echo keyAlias=${{ secrets.ALIAS }} >> signing.properties
-          echo keyPassword='${{ secrets.KEY_STORE_PASSWORD }}' >> signing.properties
-          echo storeFile=../key.jks >> signing.properties
-          echo ${{ secrets.SIGNING_KEY }} | base64 --decode > key.jks
-          echo "GIT_ACTOR=${{ secrets.GIT_ACTOR }}" >> $GITHUB_ENV
-          echo "GIT_TOKEN=${{ secrets.GIT_TOKEN }}" >> $GITHUB_ENV
+          if [ -z "$SIGNING_KEY" ] || [ -z "$KEY_STORE_PASSWORD" ] || [ -z "$ALIAS" ]; then
+            echo "::error::缺少签名密钥：请在仓库 Settings → Secrets and variables → Actions 中添加 SIGNING_KEY、KEY_STORE_PASSWORD、ALIAS"
+            exit 1
+          fi
+
+      - name: Create Sign File
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          ALIAS: ${{ secrets.ALIAS }}
+        run: |
+          echo "$SIGNING_KEY" | base64 --decode > key.jks
+          {
+            echo "storePassword=$KEY_STORE_PASSWORD"
+            echo "keyAlias=$ALIAS"
+            echo "keyPassword=$KEY_STORE_PASSWORD"
+            echo "storeFile=../key.jks"
+          } > signing.properties
 
       - name: Build with Gradle (Canary)
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         shell: bash
-        run: |
-          ./gradlew assembleCanary
-          echo "IS_DEBUG=false" >> $GITHUB_ENV
-
-      - name: Build with Gradle (Debug)
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          ./gradlew assembleDebug
-          echo "IS_DEBUG=true" >> $GITHUB_ENV
+        run: ./gradlew assembleCanary
 
       - name: Find APKs
         run: |
-          if [ ${{ env.IS_DEBUG }} = true ]; then
-            APK_FILE=$(find app/build/outputs/apk/debug -name '*.apk')
-          else
-            APK_FILE=$(find app/build/outputs/apk/canary -name '*.apk')
-          fi
+          APK_FILE=$(find app/build/outputs/apk/canary -name '*.apk')
           echo "APK_FILE=$APK_FILE" >> $GITHUB_ENV
           echo "APK_FILE_NAME=$(basename $APK_FILE .apk)" >> $GITHUB_ENV
 
@@ -68,12 +67,8 @@ jobs:
           echo "### Build Success" >> $GITHUB_STEP_SUMMARY
           echo "|Artifact|SHA256|" >> $GITHUB_STEP_SUMMARY
           echo "|:---:|:---|" >> $GITHUB_STEP_SUMMARY
-          APK_SHA256=($(shasum -a 256 ${{ env.APK_FILE }}))
-          if [ ${{ env.IS_DEBUG }} = true ]; then
-            echo "|Debug|$APK_SHA256" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "|Canary|$APK_SHA256" >> $GITHUB_STEP_SUMMARY
-          fi
+          APK_SHA256=($(sha256sum ${{ env.APK_FILE }}))
+          echo "|Canary|$APK_SHA256" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
@@ -81,63 +76,3 @@ jobs:
           name: ${{ env.APK_FILE_NAME }}
           path: ${{ env.APK_FILE }}
           compression-level: 9
-
-  push_to_canary_group:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.ref_type != 'tag' && !contains(github.event.head_commit.message, '[skp]') && !contains(github.event.head_commit.message, 's#')
-    runs-on: ubuntu-latest
-    name: Push to Canary Group
-    needs: build_app
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Find Artifacts
-        run: |
-          echo "APK_FILE_CANARY=$(find artifacts -name '*.apk')" >> $GITHUB_ENV
-
-      - name: Post to Canary Group
-        env:
-          GROUP_ID: ${{ secrets.GROUP_ID }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CANARY: ${{ env.APK_FILE_CANARY }}
-          COMMIT_MESSAGE: |+
-            New push to GitHub
-            ```
-            ${{ github.event.head_commit.message }}
-            ```by `${{ github.event.head_commit.author.name }}`
-            See commit detail [here](${{ github.event.head_commit.url }})
-        run: |
-          ESCAPED=$(python3 -c 'import json,os,urllib.parse; print(urllib.parse.quote(json.dumps(os.environ["COMMIT_MESSAGE"])))')
-          cd ${{ github.workspace }}
-          curl -v "https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup?chat_id=${GROUP_ID}&media=%5B%7B%22type%22:%22document%22,%20%22media%22:%22attach://canary%22,%22parse_mode%22:%22MarkdownV2%22,%22caption%22:${ESCAPED}%7D%5D" -F canary="@${CANARY}"
-
-  push_to_debug_group:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    name: Push to Debug Group
-    needs: build_app
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Find Artifacts
-        run: |
-          echo "APK_FILE_DEBUG=$(find artifacts -name '*.apk')" >> $GITHUB_ENV
-
-      - name: Post to Debug Group
-        shell: bash
-        env:
-          GROUP_DEBUG_ID: ${{ secrets.GROUP_DEBUG_ID }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          DEBUG: ${{ env.APK_FILE_DEBUG }}
-          COMMIT_MESSAGE: |+
-            New push to GitHub
-            by `${{ github.triggering_actor }}`
-        run: |
-          ESCAPED=$(python3 -c 'import json,os,urllib.parse; print(urllib.parse.quote(json.dumps(os.environ["COMMIT_MESSAGE"])))')
-          cd ${{ github.workspace }}
-          curl -v "https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup?chat_id=${GROUP_DEBUG_ID}&media=%5B%7B%22type%22:%22document%22,%20%22media%22:%22attach://debug%22,%22parse_mode%22:%22MarkdownV2%22,%22caption%22:${ESCAPED}%7D%5D" -F debug="@${DEBUG}"
