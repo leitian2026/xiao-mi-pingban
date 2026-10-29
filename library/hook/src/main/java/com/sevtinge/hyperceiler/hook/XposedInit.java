@@ -55,6 +55,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -99,6 +100,9 @@ public class XposedInit implements IXposedHookZygoteInit, IXposedHookLoadPackage
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         if (isInSafeMode(lpparam.packageName)) return;
 
+        // 配置快照读取失败时，通过模块 Provider 兜底读取
+        ensurePrefsLoaded(lpparam.packageName);
+
         // load EzXHelper and set log tag
         EzXposed.initHandleLoadPackage(lpparam);
 
@@ -106,6 +110,30 @@ public class XposedInit implements IXposedHookZygoteInit, IXposedHookLoadPackage
         new SystemFrameworkForCorePatch().handleLoadPackage(lpparam);
         // load Module hook apps
         init(lpparam);
+    }
+
+    private static final AtomicBoolean sPrefsLoaderStarted = new AtomicBoolean(false);
+
+    private static void ensurePrefsLoaded(String packageName) {
+        if (!mPrefsMap.isEmpty()) return;
+        if ("android".equals(packageName)) {
+            // system_server 启动早期 Provider 不可用，放到后台线程里重试，避免阻塞系统启动
+            if (!sPrefsLoaderStarted.compareAndSet(false, true)) return;
+            Thread loader = new Thread(() -> {
+                for (int i = 0; i < 30 && mPrefsMap.isEmpty(); i++) {
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                    PrefsUtils.loadAllFromProvider(PrefsUtils.getSystemContext());
+                }
+            }, "HyperCeiler-PrefsLoader");
+            loader.setDaemon(true);
+            loader.start();
+        } else {
+            PrefsUtils.loadAllFromProvider(PrefsUtils.getSystemContext());
+        }
     }
 
     private static void loadZygoteHook(StartupParam startupParam) throws Throwable {
