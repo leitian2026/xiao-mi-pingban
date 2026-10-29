@@ -39,7 +39,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import org.json.JSONArray;
 
 public class SharedPrefsProvider extends ContentProvider {
 
@@ -56,6 +59,7 @@ public class SharedPrefsProvider extends ContentProvider {
         uriMatcher.addURI(AUTHORITY, "stringset/*", 4);
         uriMatcher.addURI(AUTHORITY, "test/*", 5);
         uriMatcher.addURI(AUTHORITY, "shortcut_icon/*", 6);
+        uriMatcher.addURI(AUTHORITY, "all", 7);
     }
 
     @Override
@@ -95,6 +99,27 @@ public class SharedPrefsProvider extends ContentProvider {
                 Set<String> strings = prefs.getStringSet(parts.get(1), new LinkedHashSet<>());
                 for (String str : strings) cursor.newRow().add("data", str);
                 return cursor;
+            }
+            case 7 -> {
+                // 导出全部配置：key / type / value，供被 hook 进程在无法读取配置文件时兜底使用
+                MatrixCursor all = new MatrixCursor(new String[]{"key", "type", "value"});
+                for (Map.Entry<String, ?> entry : prefs.getAll().entrySet()) {
+                    Object v = entry.getValue();
+                    if (v instanceof Boolean) {
+                        all.addRow(new Object[]{entry.getKey(), "boolean", ((Boolean) v) ? "1" : "0"});
+                    } else if (v instanceof Integer) {
+                        all.addRow(new Object[]{entry.getKey(), "int", String.valueOf(v)});
+                    } else if (v instanceof Long) {
+                        all.addRow(new Object[]{entry.getKey(), "long", String.valueOf(v)});
+                    } else if (v instanceof Float) {
+                        all.addRow(new Object[]{entry.getKey(), "float", String.valueOf(v)});
+                    } else if (v instanceof String) {
+                        all.addRow(new Object[]{entry.getKey(), "string", v});
+                    } else if (v instanceof Set<?>) {
+                        all.addRow(new Object[]{entry.getKey(), "stringset", new JSONArray((Set<?>) v).toString()});
+                    }
+                }
+                return all;
             }
         }
         return null;
