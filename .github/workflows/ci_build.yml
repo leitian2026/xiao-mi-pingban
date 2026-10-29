@@ -31,9 +31,14 @@ jobs:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
           ALIAS: ${{ secrets.ALIAS }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: |
           if [ -z "$SIGNING_KEY" ] || [ -z "$KEY_STORE_PASSWORD" ] || [ -z "$ALIAS" ]; then
             echo "::error::缺少签名密钥：请在仓库 Settings → Secrets and variables → Actions 中添加 SIGNING_KEY、KEY_STORE_PASSWORD、ALIAS"
+            exit 1
+          fi
+          if [ -z "$GIT_TOKEN" ]; then
+            echo "::error::缺少 GIT_TOKEN：需要一个带 read:packages 权限的 GitHub 令牌，用于下载 GitHub Packages 上的依赖"
             exit 1
           fi
 
@@ -56,6 +61,9 @@ jobs:
 
       - name: Build with Gradle (Canary)
         shell: bash
+        env:
+          GIT_ACTOR: ${{ github.actor }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: ./gradlew assembleCanary
 
       - name: Find APKs
