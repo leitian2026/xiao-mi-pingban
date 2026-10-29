@@ -1,29 +1,7 @@
 name: CI Build
 
 on:
-  pull_request:
-    types: [opened, synchronize]
-    paths-ignore:
-      - ".github/**"
-      - "!.github/workflows/**"
-      - ".idea/"
-      - "doc/*"
-      - "*.md"
-      - "imgs/*"
-      - "app/src/assets/**"
-      - "crowdin.yml"
-  push:
-    branches: [main]
-    paths-ignore:
-      - ".github/**"
-      - "!.github/workflows/**"
-      - ".idea/"
-      - "doc/*"
-      - "*.md"
-      - "imgs/*"
-      - "app/src/assets/**"
-      - ".github/workflows/crowdin.yml"
-      - "crowdin.yml"
+  # 已关闭自动构建（push / pull_request），仅保留手动触发
   workflow_dispatch:
 
 jobs:
