@@ -66,7 +66,6 @@ dependencies {
     api(libs.miuix.flexible)
     api(libs.miuix.folme)
     api(libs.miuix.graphics)
-    api(libs.miuix.haptic)
     api(libs.miuix.mgl)
     api(libs.miuix.navigator)
     api(libs.miuix.nestedheader)
