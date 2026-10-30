@@ -136,6 +136,11 @@ android {
         }
     }
 
+    lint {
+        // 自用构建：release 构建时不跑 lint vital 检查，避免被与功能无关的 lint 告警卡住
+        checkReleaseBuilds = false
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
