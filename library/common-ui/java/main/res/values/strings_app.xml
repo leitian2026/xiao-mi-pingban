@@ -135,6 +135,8 @@
     <string name="development_ui">UI</string>
     <string name="development_debug_info">Debug info</string>
     <string name="development_hook_status" translatable="false">功能检查</string>
+    <string name="system_ui_statusbar_clock_tabular_digits" translatable="false">数字等宽</string>
+    <string name="system_ui_statusbar_clock_tabular_digits_desc" translatable="false">时间里的数字占相同宽度，防止秒数变化时旁边的日期抖动</string>
     <string name="development_prefs">Share preference</string>
     <string name="development_cmd_r">CMD with root</string>
     <string name="development_delete_all_dexkit_cache">Delete all DexKit cache</string>
