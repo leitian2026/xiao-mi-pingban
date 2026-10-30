@@ -47,17 +47,21 @@ public class LogManager {
     private static final String PROP_HYPERCEILER_LOG_LEVEL = "persist.hyperceiler.log.level";
 
     public static void init() {
-        IS_LOGGER_ALIVE = isLoggerAlive();
+        // 自用构建：跳过 Log 服务检查。该检查只影响首页提示、启动弹窗和调试信息页，不影响 hook 功能，
+        // 同时省去每次启动执行 root 命令和读取 logcat 的开销。
+        IS_LOGGER_ALIVE = true;
+        LOGGER_CHECKER_ERR_CODE = "SKIPPED";
     }
 
     public static void setLogLevel() {
-        int logLevel = Integer.parseInt(mSharedPreferences.getString("prefs_key_log_level", "3"));
+        int logLevel = Integer.parseInt(mSharedPreferences.getString("prefs_key_log_level", "1"));
         int effectiveLogLevel = ProjectApi.isCanary() ? (logLevel != 3 && logLevel != 4 ? 3 : logLevel) : logLevel;
         PropUtils.setProp(PROP_HYPERCEILER_LOG_LEVEL, effectiveLogLevel);
     }
 
     public static int getLogLevel() {
-        int level = mPrefsMap.getStringAsInt("log_level", 3);
+        // 自用构建：默认只记录错误（1）。读不到配置时也保持安静，需要更详细的日志可在设置里调高
+        int level = mPrefsMap.getStringAsInt("log_level", 1);
         return BuildConfig.BUILD_TYPE.equals("canary") ? (level != 3 && level != 4 ? 3 : level) : level;
     }
 
