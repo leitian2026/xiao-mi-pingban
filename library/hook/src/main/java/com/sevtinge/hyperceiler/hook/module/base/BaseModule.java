@@ -23,6 +23,7 @@ import com.hchen.hooktool.HCInit;
 import com.sevtinge.hyperceiler.hook.module.base.dexkit.DexKit;
 import com.sevtinge.hyperceiler.hook.module.base.tool.AppsTool;
 import com.sevtinge.hyperceiler.hook.safe.CrashData;
+import com.sevtinge.hyperceiler.hook.utils.log.HookStatusReporter;
 import com.sevtinge.hyperceiler.hook.utils.log.XposedLogUtils;
 import com.sevtinge.hyperceiler.hook.utils.prefs.PrefsMap;
 import com.sevtinge.hyperceiler.hook.utils.prefs.PrefsUtils;
@@ -73,6 +74,7 @@ public abstract class BaseModule {
             handleLoadPackage();
         } catch (Throwable e) {
             DexKit.close();
+            HookStatusReporter.record(lpparam.packageName, lpparam.processName, TAG, false, e);
             throw new RuntimeException(e);
         }
         DexKit.close();
@@ -125,7 +127,15 @@ public abstract class BaseModule {
 
     private void onCreate(Object hook) {
         if (hook instanceof BaseHook baseHook) baseHook.onCreate(mLoadPackageParam);
-        else if (hook instanceof HCBase HCBase) HCBase.onLoadPackage();
-        else throw new RuntimeException("Unknown hook!");
+        else if (hook instanceof HCBase HCBase) {
+            String name = hook.getClass().getSimpleName();
+            try {
+                HCBase.onLoadPackage();
+                HookStatusReporter.record(mLoadPackageParam.packageName, mLoadPackageParam.processName, name, true, null);
+            } catch (RuntimeException | Error e) {
+                HookStatusReporter.record(mLoadPackageParam.packageName, mLoadPackageParam.processName, name, false, e);
+                throw e;
+            }
+        } else throw new RuntimeException("Unknown hook!");
     }
 }
