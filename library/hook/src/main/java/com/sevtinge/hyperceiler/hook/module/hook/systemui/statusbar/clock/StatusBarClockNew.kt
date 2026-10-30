@@ -96,7 +96,7 @@ object StatusBarClockNew : BaseHook() {
         mPrefsMap.getInt("system_ui_statusbar_clock_fixedcontent_width_1", 30)
     }
     private val tabularDigits by lazy {
-        mPrefsMap.getBoolean("system_ui_statusbar_clock_tabular_digits_1", false)
+        mPrefsMap.getBoolean("system_ui_statusbar_clock_tabular_digits_1")
     }
     private val bClockLeftMargin by lazy {
         mPrefsMap.getInt("system_ui_statusbar_clock_left_margin_2", 0)
