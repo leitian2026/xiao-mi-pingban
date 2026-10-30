@@ -21,6 +21,8 @@ package com.sevtinge.hyperceiler.hook.module.hook.systemui.statusbar.clock
 import android.content.Context
 import android.graphics.Typeface
 import android.os.Handler
+import android.text.SpannableString
+import android.text.Spanned
 import android.util.TypedValue
 import android.view.View
 import android.widget.TextView
@@ -92,6 +94,9 @@ object StatusBarClockNew : BaseHook() {
     }
     private val fixedWidth by lazy {
         mPrefsMap.getInt("system_ui_statusbar_clock_fixedcontent_width_1", 30)
+    }
+    private val tabularDigits by lazy {
+        mPrefsMap.getBoolean("system_ui_statusbar_clock_tabular_digits_1", false)
     }
     private val bClockLeftMargin by lazy {
         mPrefsMap.getInt("system_ui_statusbar_clock_left_margin_2", 0)
@@ -397,8 +402,21 @@ object StatusBarClockNew : BaseHook() {
         mCalendar.apply {
             callMethod("setTimeInMillis", System.currentTimeMillis())
             callMethod("format", context, textSb, formatSb)
-            textV.text = textSb.toString()
+            val result = textSb.toString()
+            textV.text =
+                if (tabularDigits && name == "clock") toTabularDigits(result) else result
         }
+    }
+
+    // 让每个数字占相同宽度，避免秒数变化时旁边的日期左右抖动
+    private fun toTabularDigits(text: String): CharSequence {
+        val spannable = SpannableString(text)
+        for (i in text.indices) {
+            if (text[i] in '0'..'9') {
+                spannable.setSpan(TabularDigitSpan(), i, i + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+        return spannable
     }
 
     private fun safeSplitFirst(str: String?): String {
