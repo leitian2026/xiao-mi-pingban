@@ -59,16 +59,16 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build with Gradle (Canary)
+      - name: Build with Gradle (Release)
         shell: bash
         env:
           GIT_ACTOR: ${{ github.actor }}
           GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
-        run: ./gradlew assembleCanary
+        run: ./gradlew assembleRelease
 
       - name: Find APKs
         run: |
-          APK_FILE=$(find app/build/outputs/apk/canary -name '*.apk')
+          APK_FILE=$(find app/build/outputs/apk/release -name '*.apk')
           echo "APK_FILE=$APK_FILE" >> $GITHUB_ENV
           echo "APK_FILE_NAME=$(basename $APK_FILE .apk)" >> $GITHUB_ENV
 
@@ -79,7 +79,7 @@ jobs:
           echo "|Artifact|SHA256|" >> $GITHUB_STEP_SUMMARY
           echo "|:---:|:---|" >> $GITHUB_STEP_SUMMARY
           APK_SHA256=($(sha256sum ${{ env.APK_FILE }}))
-          echo "|Canary|$APK_SHA256" >> $GITHUB_STEP_SUMMARY
+          echo "|Release|$APK_SHA256" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
