@@ -26,6 +26,11 @@
             android:title="@string/development_debug_info" />
 
         <Preference
+            android:fragment="com.sevtinge.hyperceiler.ui.page.settings.development.DevelopmentHookStatusFragment"
+            android:key="prefs_key_development_hook_status"
+            android:title="@string/development_hook_status" />
+
+        <Preference
             android:fragment="com.sevtinge.hyperceiler.ui.page.settings.development.DevelopmentKillFragment"
             android:key="prefs_key_development_kill"
             android:title="@string/kill" />
