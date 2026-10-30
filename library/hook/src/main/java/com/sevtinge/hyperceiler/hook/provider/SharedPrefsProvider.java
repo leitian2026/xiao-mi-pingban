@@ -27,12 +27,14 @@ import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import com.sevtinge.hyperceiler.hook.module.base.tool.AppsTool;
+import com.sevtinge.hyperceiler.hook.utils.log.HookStatusStore;
 import com.sevtinge.hyperceiler.hook.utils.prefs.PrefsUtils;
 
 import java.io.File;
@@ -175,4 +177,22 @@ public class SharedPrefsProvider extends ContentProvider {
         return 0;
     }
 
+
+    @Override
+    public Bundle call(@NonNull String method, String arg, Bundle extras) {
+        if (HookStatusStore.METHOD_REPORT.equals(method) && extras != null) {
+            Bundle result = new Bundle();
+            try {
+                HookStatusStore.save(getContext(),
+                        extras.getString(HookStatusStore.EXTRA_PACKAGE),
+                        extras.getString(HookStatusStore.EXTRA_PROCESS),
+                        extras.getStringArrayList(HookStatusStore.EXTRA_ENTRIES));
+                result.putBoolean("ok", true);
+            } catch (Throwable t) {
+                result.putBoolean("ok", false);
+            }
+            return result;
+        }
+        return super.call(method, arg, extras);
+    }
 }
