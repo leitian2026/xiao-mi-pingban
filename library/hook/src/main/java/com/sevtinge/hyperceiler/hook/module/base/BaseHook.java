@@ -21,6 +21,7 @@ package com.sevtinge.hyperceiler.hook.module.base;
 import static com.sevtinge.hyperceiler.hook.utils.log.LogManager.logLevel;
 
 import com.sevtinge.hyperceiler.hook.module.base.tool.HookTool;
+import com.sevtinge.hyperceiler.hook.utils.log.HookStatusReporter;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -39,8 +40,10 @@ public abstract class BaseHook extends HookTool {
             setLoadPackageParam(lpparam);
             init();
             logHookSuccess(lpparam);
+            HookStatusReporter.record(lpparam.packageName, lpparam.processName, TAG, true, null);
         } catch (Throwable t) {
             logHookFailure(t, lpparam);
+            HookStatusReporter.record(lpparam.packageName, lpparam.processName, TAG, false, t);
         }
     }
 
