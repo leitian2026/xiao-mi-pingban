@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
  * Copyright (C) 2023-2025 HyperCeiler Contributions
+ */
 package com.sevtinge.hyperceiler.hook.utils.log;
 
 import static com.sevtinge.hyperceiler.hook.utils.prefs.PrefsUtils.mPrefsMap;
