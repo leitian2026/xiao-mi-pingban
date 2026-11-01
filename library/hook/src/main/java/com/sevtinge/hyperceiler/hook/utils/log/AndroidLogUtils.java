@@ -33,7 +33,8 @@ import com.sevtinge.hyperceiler.hook.utils.PropUtils;
  * */
 public class AndroidLogUtils {
     private static final String Tag = "[HyperCeiler]: ";
-    private static final int logLevel = PropUtils.getProp("persist.hyperceiler.log.level", 3);
+    // 自用构建：属性不存在时默认只记录错误（1），与 LogManager 的默认值保持一致
+    private static final int logLevel = PropUtils.getProp("persist.hyperceiler.log.level", 1);
 
     public static void logI(String tag, String msg) {
         if (logLevel < 3) return;
