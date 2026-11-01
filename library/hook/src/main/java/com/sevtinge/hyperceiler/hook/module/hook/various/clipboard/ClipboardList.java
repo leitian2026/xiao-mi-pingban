@@ -104,14 +104,26 @@ public class ClipboardList extends BaseHook {
             findAndHookMethod("com.miui.inputmethod.InputMethodClipboardPhrasePopupView",
                     classLoader, "lambda$updateClipboardData$6",
                     "com.miui.inputmethod.ClipboardContentModel", new MethodHook() {
+                        // 只在这个 lambda 执行期间临时挂住 List.size，执行完立刻撤销；
+                        // 原来每次剪贴板更新都再挂一个且从不撤销，钩子会越积越多
+                        de.robv.android.xposed.XC_MethodHook.Unhook unhook;
+
                         @Override
                         protected void before(MethodHookParam param) throws Throwable {
-                            findAndHookMethod("java.util.List", "size", new MethodHook() {
+                            unhook = findAndHookMethod(java.util.List.class, "size", new MethodHook() {
                                 @Override
                                 protected void before(MethodHookParam param) throws Throwable {
                                     param.setResult(0);
                                 }
                             });
+                        }
+
+                        @Override
+                        protected void after(MethodHookParam param) throws Throwable {
+                            if (unhook != null) {
+                                unhook.unhook();
+                                unhook = null;
+                            }
                         }
                     });
         } catch (Exception ignore) {}
