@@ -191,7 +191,7 @@ public class XposedInit implements IXposedHookZygoteInit, IXposedHookLoadPackage
 
         if (Objects.equals(packageName, "android"))
             logI(packageName, "androidVersion = " + getAndroidVersion() + ", hyperosVersion = " + getHyperOSVersion());
-        else
+        else if (LogManager.getLogLevel() >= 3) // 日志不输出时就不必去解析 APK 取版本号
             logI(packageName, "versionName = " + getPackageVersionName(lpparam) + ", versionCode = " + getPackageVersionCode(lpparam));
 
         invokeInit(lpparam);
