@@ -34,6 +34,10 @@ public class PrefsChangeObserver extends ContentObserver {
     private final Context context;
     private final Object def;
     private final String name;
+    // 没有重写 onChange 的"自动应用"监听，作用只是把同一个 key 的新值写进 mPrefsMap，
+    // 同一个 uri 在一个进程里注册一次就够。放在热路径回调里反复 new 的话，监听会越积越多，
+    // 每次设置变化还会触发 N 次 Provider 查询。
+    private static final java.util.Set<String> sAutoApplyUris = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public PrefsChangeObserver(Context context, Handler handler) {
         this(context, handler, false, PrefType.Any, null, null);
@@ -63,6 +67,10 @@ public class PrefsChangeObserver extends ContentObserver {
             case PrefType.Boolean -> uri = PrefToUri.boolPrefToUri(name, (boolean) def);
         }
         if (uri != null) {
+            if (getClass() == PrefsChangeObserver.class && autoApplyChange && type != PrefType.Any
+                    && !sAutoApplyUris.add(uri.toString())) {
+                return; // 同一个 uri 已经有一个等价的监听了
+            }
             context.getContentResolver().registerContentObserver(uri, type == PrefType.Any, this);
         }
     }
