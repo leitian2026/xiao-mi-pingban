@@ -41,12 +41,8 @@ public class SwitchControlPanel extends BaseHook {
                 XposedHelpers.setFloatField(param.thisObject, "mDownX", f);
                 float mDownX = XposedHelpers.getFloatField(param.thisObject, "mDownX");
                 int i = (Float.compare(mDownX, f / 2.0f));
-                AndroidLogUtils.logI(TAG, "mDownX：" + mDownX + "in before");
-                AndroidLogUtils.logI(TAG, "f：" + f + "in before");
-                AndroidLogUtils.logI(TAG, "：" + i + "in before");
                 i *= -1;
                 int i2 = i;
-                AndroidLogUtils.logI(TAG, "：" + i2 + "in before");
             }
 
             @Override
@@ -54,12 +50,8 @@ public class SwitchControlPanel extends BaseHook {
                 float mDownX = XposedHelpers.getFloatField(param.thisObject, "mDownX");
                 float f = (float) param.args[1];
                 int i = (Float.compare(mDownX, f / 2.0f));
-                AndroidLogUtils.logI(TAG, "mDownX：" + mDownX + "in after");
-                AndroidLogUtils.logI(TAG, "f：" + f + "in after");
-                AndroidLogUtils.logI(TAG, "：" + i + "in after");
                 i *= -1;
                 int i2 = i;
-                AndroidLogUtils.logI(TAG, "：" + i2 + "in after");
             }
         });
     }
