@@ -107,6 +107,8 @@ class MediaControlPanelBackgroundMix : BaseHook() {
         try {
             var lockScreenStatus: Boolean? = null
             var darkModeStatus: Boolean? = null
+            // getState 是极高频方法：每个新视图只保留一个钩子，安装新的之前先撤销上一个，避免钩子和视图越积越多
+            var stateHook: de.robv.android.xposed.XC_MethodHook.Unhook? = null
 
             // 导致拖动 SeekBar 改变歌曲标题/艺术家名字颜色的实际位置不在这里，目前暂时作为代替解决方案。
             if (isMoreHyperOSVersion(2f)) {
@@ -237,7 +239,8 @@ class MediaControlPanelBackgroundMix : BaseHook() {
                         }
                     }
 
-                    statusBarStateControllerImpl?.methodFinder()?.filterByName("getState")
+                    stateHook?.unhook()
+                    stateHook = statusBarStateControllerImpl?.methodFinder()?.filterByName("getState")
                         ?.first()?.createAfterHook { hookParam1 ->
                             val getStatusBarState = hookParam1.result as Int
                             val isInLockScreen = getStatusBarState == 1
