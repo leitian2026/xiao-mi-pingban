@@ -81,9 +81,12 @@ public class AboutPageFragment extends DashboardFragment
     private BgEffectPainter mBgEffectPainter;
     private float startTime = (float) System.nanoTime();
     private final Handler mHandler = new Handler(Looper.getMainLooper());
+    // 当前标签页是否在前台：背景着色器动画只在页面可见时运行，退到后台 / 切到别的标签页就暂停
+    private boolean mTabActive = true;
     Runnable runnableBgEffect = new Runnable() {
         @Override
         public void run() {
+            if (mBgEffectPainter == null || mBgEffectView == null) return;
             mBgEffectPainter.setAnimTime(((((float) System.nanoTime()) - startTime) / 1.0E9f) % 62.831852f);
             mBgEffectPainter.setResolution(new float[]{mBgEffectView.getWidth(), mBgEffectView.getHeight()});
             mBgEffectPainter.updateMaterials();
@@ -137,6 +140,23 @@ public class AboutPageFragment extends DashboardFragment
     public void onResume() {
         super.onResume();
         initCardView();
+        startBgEffect();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopBgEffect();
+    }
+
+    private void startBgEffect() {
+        if (mBgEffectPainter == null || !mTabActive || !isResumed()) return;
+        mHandler.removeCallbacks(runnableBgEffect);
+        mHandler.post(runnableBgEffect);
+    }
+
+    private void stopBgEffect() {
+        mHandler.removeCallbacks(runnableBgEffect);
     }
 
     @Override
@@ -157,7 +177,7 @@ public class AboutPageFragment extends DashboardFragment
                 mBgEffectPainter.showRuntimeShader(getContext().getApplicationContext(),
                         mBgEffectView, getAppCompatActionBar());
 
-                mHandler.post(runnableBgEffect);
+                startBgEffect();
             }
         });
     }
@@ -276,6 +296,8 @@ public class AboutPageFragment extends DashboardFragment
 
     @Override
     public void onEnter(ActionBar actionBar) {
+        mTabActive = true;
+        startBgEffect();
         if (actionBar != null) {
             actionBar.getExpandTitle().setTitle("");
             actionBar.getActionBarView().requestFocus();
@@ -285,6 +307,8 @@ public class AboutPageFragment extends DashboardFragment
 
     @Override
     public void onLeave(ActionBar actionBar) {
+        mTabActive = false;
+        stopBgEffect();
         if (actionBar != null && actionBar.getTitleView(0) != null) {
             actionBar.getTitleView(0).setAlpha(1.0f);
         }
