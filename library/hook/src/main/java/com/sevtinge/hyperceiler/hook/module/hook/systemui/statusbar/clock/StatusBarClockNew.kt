@@ -20,7 +20,6 @@ package com.sevtinge.hyperceiler.hook.module.hook.systemui.statusbar.clock
 
 import android.content.Context
 import android.graphics.Typeface
-import android.os.Handler
 import android.text.SpannableString
 import android.text.Spanned
 import android.util.TypedValue
@@ -42,8 +41,6 @@ import io.github.kyuubiran.ezxhelper.xposed.dsl.HookFactory.`-Static`.createAfte
 import io.github.kyuubiran.ezxhelper.xposed.dsl.HookFactory.`-Static`.createBeforeHook
 import io.github.kyuubiran.ezxhelper.xposed.dsl.HookFactory.`-Static`.createHook
 import java.lang.reflect.Method
-import java.util.Timer
-import java.util.TimerTask
 
 object StatusBarClockNew : BaseHook() {
     private val statusBarClass by lazy {
@@ -218,18 +215,8 @@ object StatusBarClockNew : BaseHook() {
 
                     if (isSec) {
                         val updateTimeMethod: Method = miuiClock.javaClass.getDeclaredMethod("updateTime")
-                        val runnable = Runnable {
-                            updateTimeMethod.isAccessible = true
-                            updateTimeMethod.invoke(miuiClock)
-                        }
-
-                        val timerTask = object : TimerTask() {
-                            override fun run() {
-                                Handler(miuiClock.context.mainLooper).post(runnable)
-                            }
-                        }
-
-                        Timer().schedule(timerTask, 1000 - System.currentTimeMillis() % 1000, 1000)
+                        // 统一节拍器：息屏停止、不可见不刷新、不再每个时钟各开一个永不停止的 Timer
+                        SecondClockTicker.add(miuiClock, updateTimeMethod)
                     }
                 }
             }
