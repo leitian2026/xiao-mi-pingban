@@ -63,6 +63,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public class DexKit {
     private static String TAG = "DexKit";
     private static boolean isInit = false;
+    private static boolean isCacheInit = false;
     private static final int mVersion = 3;
     private static final String MMKV_PATH = "/files/hyperceiler/mmkv";
     private static XC_LoadPackage.LoadPackageParam mParam;
@@ -77,19 +78,19 @@ public class DexKit {
         mParam = param;
         TAG = tag;
         isInit = false;
+        isCacheInit = false;
     }
 
-    @NotNull
-    public static DexKitBridge initDexkitBridge() {
-        if (mDexKitBridge != null)
-            return mDexKitBridge;
-        if (isInit)
-            throw new RuntimeException(TAG + ": mDexKitBridge is null!");
+    /**
+     * 只初始化 MMKV 缓存（轻量）。DexKitBridge.create 会把整个宿主 APK 的 dex 全部解析建索引，非常重，
+     * 缓存命中时根本用不到它，所以拆开：先查缓存，未命中才创建 bridge。
+     */
+    private static void initCache() {
+        if (isCacheInit) return;
         if (mParam == null)
             throw new RuntimeException(TAG + ": lpparam is null!");
 
-        String hostDir = mParam.appInfo.sourceDir,
-                mmkvPath = mParam.appInfo.dataDir + MMKV_PATH;
+        String mmkvPath = mParam.appInfo.dataDir + MMKV_PATH;
         mGson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
         // 启动 MMKV
@@ -128,8 +129,22 @@ public class DexKit {
             } else
                 mMMKV.putString("osVersion", osVersion + "\n");
         }
+        isCacheInit = true;
+    }
+
+    @NotNull
+    public static DexKitBridge initDexkitBridge() {
+        if (mDexKitBridge != null)
+            return mDexKitBridge;
+        if (isInit)
+            throw new RuntimeException(TAG + ": mDexKitBridge is null!");
+        if (mParam == null)
+            throw new RuntimeException(TAG + ": lpparam is null!");
+
+        initCache();
 
         // 启动 DexKit
+        String hostDir = mParam.appInfo.sourceDir;
         System.loadLibrary("dexkit");
         mDexKitBridge = DexKitBridge.create(hostDir);
         isInit = true;
@@ -145,11 +160,11 @@ public class DexKit {
     }
 
     public static <T> T findMember(@NonNull String key, ClassLoader classLoader, IDexKit iDexKit) {
-        DexKitBridge dexKitBridge = initDexkitBridge();
+        initCache();
         String descriptor = mMMKV.getString(key, "");
         if (descriptor.isEmpty()) {
             try {
-                BaseData baseData = iDexKit.dexkit(dexKitBridge);
+                BaseData baseData = iDexKit.dexkit(initDexkitBridge());
                 if (baseData instanceof FieldData fieldData) {
                     mMMKV.putString(key, mGson.toJson(new MemberData(TYPE_FIELD, fieldData.toDexField().serialize())) + "\n\n");
                     return (T) fieldData.getFieldInstance(classLoader);
@@ -190,11 +205,11 @@ public class DexKit {
     }
 
     public static <T> List<T> findMemberList(@NonNull String key, ClassLoader classLoader, IDexKitList iDexKitList) {
-        DexKitBridge dexKitBridge = initDexkitBridge();
+        initCache();
         String descriptor = mMMKV.getString(key, "");
         if (descriptor.isEmpty()) {
             try {
-                BaseDataList<?> baseDataList = iDexKitList.dexkit(dexKitBridge);
+                BaseDataList<?> baseDataList = iDexKitList.dexkit(initDexkitBridge());
                 ArrayList<String> serializeList = new ArrayList<>();
                 ArrayList<T> instanceList = new ArrayList<>();
                 if (baseDataList instanceof FieldDataList fieldDataList) {
@@ -271,7 +286,7 @@ public class DexKit {
      * 请勿手动调用。
      */
     public static void close() {
-        if (!isInit) return;
+        if (!isInit && !isCacheInit) return;
 
         if (mDexKitBridge != null) {
             mDexKitBridge.close();
@@ -284,6 +299,7 @@ public class DexKit {
         mParam = null;
         mGson = null;
         isInit = false;
+        isCacheInit = false;
     }
 
     private static final class MemberData {
