@@ -126,7 +126,7 @@ public class AppsTool {
     // Permissions 权限
     @SuppressLint({"SetWorldReadable", "SetWorldWritable"})
     public static void fixPermissionsAsync(Context context) {
-        Executor executor = Executors.newSingleThreadExecutor();
+        java.util.concurrent.ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             try {
                 Thread.sleep(500);
@@ -151,6 +151,8 @@ public class AppsTool {
                 sharedPrefsFile.setWritable(true, false);
             }
         });
+        // 任务提交后就关闭执行器，否则每次调用都会残留一个空闲线程
+        executor.shutdown();
     }
 
     public static void registerFileObserver(Context context) {
