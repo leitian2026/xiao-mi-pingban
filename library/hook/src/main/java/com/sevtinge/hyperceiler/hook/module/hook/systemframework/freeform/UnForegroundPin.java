@@ -86,47 +86,39 @@ public class UnForegroundPin extends BaseHook {
 
             findAndHookMethod("com.android.server.wm.Task",
                 "prepareSurfaces", new MethodHook() {
+                    // prepareSurfaces 在 system_server 里每次布局都会对每个任务调用，是极热的路径。
+                    // 原来无论是不是自由窗口都先做十几次反射；后面所有分支都要求 mffs != null，
+                    // 所以先用最少的几次调用判断，不是自由窗口就直接返回。
                     @Override
                     protected void after(XC_MethodHook.MethodHookParam param) {
-                        SurfaceControl.Transaction transaction = (SurfaceControl.Transaction) XposedHelpers.callMethod(param.thisObject, "getSyncTransaction");
-                        SurfaceControl mSurfaceControl = (SurfaceControl) XposedHelpers.getObjectField(param.thisObject, "mSurfaceControl");
-                        // String pkg = (String) XposedHelpers.callMethod(param.thisObject, "getPackageName");
-                        // String mCallingPackage = (String) XposedHelpers.getObjectField(param.thisObject, "mCallingPackage");
-                        // Object getTopNonFinishingActivity = XposedHelpers.callMethod(param.thisObject, "getTopNonFinishingActivity");
-                        // String pkg = null;
-                            /*if (getTopNonFinishingActivity != null) {
-                                ActivityInfo activityInfo = (ActivityInfo) XposedHelpers.getObjectField(getTopNonFinishingActivity, "info");
-                                if (activityInfo != null) {
-                                    pkg = activityInfo.applicationInfo.packageName;
-                                }
-                            }*/
-                        int taskId = (int) XposedHelpers.callMethod(param.thisObject, "getRootTaskId");
-                        Object mWmService = XposedHelpers.getObjectField(param.thisObject, "mWmService");
+                        Object task = param.thisObject;
+                        int taskId = (int) XposedHelpers.callMethod(task, "getRootTaskId");
+                        Object mWmService = XposedHelpers.getObjectField(task, "mWmService");
                         Object mAtmService = XposedHelpers.getObjectField(mWmService, "mAtmService");
                         Object mMiuiFreeFormManagerService = XposedHelpers.getObjectField(mAtmService, "mMiuiFreeFormManagerService");
                         Object mffs = XposedHelpers.callMethod(mMiuiFreeFormManagerService, "getMiuiFreeFormActivityStack", taskId);
-                        boolean isVisible = (boolean) XposedHelpers.callMethod(param.thisObject, "isVisible");
-                        boolean isAnimating = (boolean) XposedHelpers.callMethod(param.thisObject, "isAnimating", 7);
-                        boolean inPinMode = false;
-                        if (mffs != null) {
-                            inPinMode = (boolean) XposedHelpers.callMethod(mffs, "inPinMode");
-                        }
-                        boolean mLastSurfaceVisibility = (boolean) XposedHelpers.getAdditionalInstanceField(param.thisObject, "mLastSurfaceVisibility");
-                        if (mSurfaceControl != null && mffs != null && inPinMode) {
+                        if (mffs == null) return;
+
+                        SurfaceControl mSurfaceControl = (SurfaceControl) XposedHelpers.getObjectField(task, "mSurfaceControl");
+                        if (mSurfaceControl == null) return;
+
+                        boolean inPinMode = (boolean) XposedHelpers.callMethod(mffs, "inPinMode");
+                        if (inPinMode) {
+                            boolean isAnimating = (boolean) XposedHelpers.callMethod(task, "isAnimating", 7);
                             if (!isAnimating) {
+                                SurfaceControl.Transaction transaction = (SurfaceControl.Transaction) XposedHelpers.callMethod(task, "getSyncTransaction");
                                 XposedHelpers.callMethod(transaction, "setVisibility", mSurfaceControl, false);
-                                XposedHelpers.setAdditionalInstanceField(param.thisObject, "mLastSurfaceVisibility", false);
+                                XposedHelpers.setAdditionalInstanceField(task, "mLastSurfaceVisibility", false);
                             }
-                            // logE(tag, "setVisibility false pkg2: " + pkg + " taskid: " + taskId + " isVisble: " + isVisible
-                            // + " an: " + isAnimating + " la: " + mLastSurfaceVisibility);
-                        } else if (mSurfaceControl != null && mffs != null && !inPinMode) {
+                        } else {
+                            Object last = XposedHelpers.getAdditionalInstanceField(task, "mLastSurfaceVisibility");
+                            boolean mLastSurfaceVisibility = last == null || (boolean) last;
                             if (!mLastSurfaceVisibility) {
+                                SurfaceControl.Transaction transaction = (SurfaceControl.Transaction) XposedHelpers.callMethod(task, "getSyncTransaction");
                                 XposedHelpers.callMethod(transaction, "setVisibility", mSurfaceControl, true);
-                                XposedHelpers.setAdditionalInstanceField(param.thisObject, "mLastSurfaceVisibility", true);
+                                XposedHelpers.setAdditionalInstanceField(task, "mLastSurfaceVisibility", true);
                             }
-                            // logE(tag, "setVisibility true pkg2: " + pkg + " taskid: " + taskId + " isVisble: " + isVisible + " an: " + isAnimating);
                         }
-                        // logE(tag, "sur: " + mSurfaceControl + " tra: " + transaction + " pkg: " + pkg + " inpin: " + inPinMode);
                     }
                 }
             );
